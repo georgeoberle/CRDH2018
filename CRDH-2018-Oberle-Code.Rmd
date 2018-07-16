@@ -1,0 +1,99 @@
+---
+title: "CRDH-2018-Oberle-Code"
+author: "George Oberle"
+date: "7/8/2018"
+output: html_document
+---
+
+```{r}
+#This gets total number of members by association.
+total_n<-netsoc %>%
+  group_by(Status, Organization, Type) %>%
+  summarize(n = n())
+```
+
+```{r}
+#Lincoln Mullen assisted with this set of code for the CRDH project.
+library("igraph")
+library("dplyr")
+library("readr")
+library ("ggraph")
+
+# Read in the main data, and split the bipartite network into two different graphs
+
+affiliations <- read_csv("~/agricsoc/Data/learnedsocietiesmembers.csv")
+
+g <- graph_from_data_frame(affiliations, directed = FALSE)
+V(g)$type <- bipartite_mapping(g)$type
+bi_g <- bipartite_projection(g)
+members   <- bi_g$proj1
+societies <- bi_g$proj2
+
+# Munge the data for societies
+societies_node_attr <- affiliations %>% 
+  select(Organization) %>% 
+  distinct()
+
+societies_edge_attr <- get.data.frame(societies)
+
+##save if needed
+#write_csv(societies_node_attr, "data/societies-node-attr.csv")
+#write_csv(societies_edge_attr, "data/societies-edge-attr.csv")
+
+# Munge the data for members: not going to actually do this because the members
+# graph is huge, and we aren't going to plot it anyway.
+members_node_attr <- affiliations %>% 
+select(Name, Status, Type)
+
+members_edge_attr <- get.data.frame(members)
+members_edge_attr
+```
+
+
+```{r}
+societies_edges <- read_csv("~/agricsoc/data/societies-edge-attr.csv")
+societies_nodes <- read_csv("~/agricsoc/data/societies-node-attr.csv")
+```
+
+```{r}
+societies_g <- graph_from_data_frame(societies_edge_attr, directed = FALSE, societies_node_attr)
+```
+
+```{r}
+set.seed(84848)
+ggraph (societies_g, layout = "graphopt") +
+  geom_edge_fan(aes(edge_width = weight), alpha = 0.1, show.legend = FALSE)  +
+  #geom_node_point(aes(color = factor(), size = n)) +
+  #geom_node_text(aes(),  repel = TRUE, size = 5.5) +
+  theme_graph(base_size = 20) +
+  scale_size(guide = FALSE, range = c(5, 30)) +
+  labs(title = "Growing Strong",
+       subtitle = "The institutional expansion of knowledge in the early republic",
+       caption = "George D. Oberle III, George Mason University") +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 30))
+
+```
+
+
+
+```{r}
+set.seed(84848)
+ggraph(societies_g, layout = "graphopt") +
+  geom_edge_fan(aes(edge_width = weight), alpha = 0.1, show.legend = FALSE)  +
+  geom_node_point(aes (color = Type, size = n)) +
+  #geom_node_text(aes, repel = TRUE, size = 5.5) +
+  theme_graph(base_size = 20) +
+  scale_size(guide = FALSE, range = c(5, 30)) +
+  labs(title = "Growing Strong",
+       subtitle = "The institutional expansion of knowledge in the early republic",
+       caption = "George D. Oberle III, George Mason University") +
+  theme(legend.position = "bottom",
+        plot.title = element_text(size = 30))
+ggsave("societies_g_graphopt.png", width = 30, height = 20, units = "cm")
+```
+
+```{r}
+```
+
+
